@@ -187,13 +187,15 @@ if __name__ == "__main__":
 
         target_pmfs = jnp.zeros_like(next_pmfs)
         for i in range(target_pmfs.shape[0]):
-            target_pmfs = target_pmfs.at[l[i].astype(jnp.int32)].set(d_m_l[i])
-            target_pmfs = target_pmfs.at[l[i].astype(jnp.int32)].set(d_m_u[i])
+            target_pmfs = target_pmfs.at[l[i].astype(jnp.int32)].add(d_m_l[i])
+            target_pmfs = target_pmfs.at[u[i].astype(jnp.int32)].add(d_m_u[i])
 
         def loss(q_params, observations, actions, target_pmfs):
             pmfs = q_network.apply(q_params, observations)
             old_pmfs = pmfs[np.arange(pmfs.shape[0]), actions.squeeze()]
-            loss = (-(target_pmfs * jnp.log(jax.lax.clamp(min=1e-5, x=old_pmfs, max=1 - 1e-5))).sum(-1)).mean()
+            # target_params = jnp.clip(target_pmfs, a_min=1e-5, a_max=1 - 1e-5)
+            old_pmfs_l = jnp.clip(old_pmfs, a_min=1e-5, a_max=1 - 1e-5)
+            loss = (-(target_pmfs * jnp.log(old_pmfs_l)).sum(-1)).mean()
             return loss, (old_pmfs*atoms).sum(-1)
             
         (loss_value, old_values), grads = jax.value_and_grad(loss, has_aux=True)(q_params, observations, actions, target_pmfs)
