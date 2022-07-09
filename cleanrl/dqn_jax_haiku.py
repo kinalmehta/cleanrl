@@ -5,15 +5,12 @@ import random
 import time
 from distutils.util import strtobool
 
-import flax
-import flax.linen as nn
 import gym
 import haiku as hk
 import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-from flax.training.train_state import TrainState
 from stable_baselines3.common.buffers import ReplayBuffer
 from torch.utils.tensorboard import SummaryWriter
 
@@ -86,15 +83,17 @@ def make_env(env_id, seed, idx, capture_video, run_name):
 # ALGO LOGIC: initialize agent here:
 class QNetwork(hk.Module):
     def __init__(self, action_dim: int):
-        super().__init__(name='dqn_model')
+        super().__init__(name="dqn_model")
         self.action_dim = action_dim
-        self.network = hk.Sequential([
+        self.network = hk.Sequential(
+            [
                 hk.Linear(120),
                 jax.nn.relu,
                 hk.Linear(84),
                 jax.nn.relu,
                 hk.Linear(action_dim),
-            ])
+            ]
+        )
 
     def __call__(self, x):
         return self.network(x)
@@ -215,7 +214,9 @@ if __name__ == "__main__":
             data = rb.sample(args.batch_size)
             # perform a gradient-descent step
             loss, old_val, q_params, target_params, optimizer_params = update(
-                q_params, target_params, optimizer_params,
+                q_params,
+                target_params,
+                optimizer_params,
                 data.observations.numpy(),
                 data.actions.numpy(),
                 data.next_observations.numpy(),
